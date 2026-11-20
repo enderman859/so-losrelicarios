@@ -1,0 +1,27 @@
+# Azure VM: base de datos + backend. La imagen viene de Docker Hub (no se construye aquí).
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    # SIN "ports": la BD solo es visible para el backend dentro de la red de Docker
+
+  backend:
+    image: enderman869/so-backend:1.0
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      ORIGEN_PERMITIDO: ${ORIGEN_PERMITIDO}
+    ports:
+      - "127.0.0.1:8000:8000"   # solo local; Nginx (HTTPS) es quien lo expone
+    depends_on:
+      - db
+
+volumes:
+  pgdata:
